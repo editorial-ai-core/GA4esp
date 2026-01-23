@@ -40,6 +40,31 @@ def fail_ui(msg: str):
     st.error(msg)
     st.stop()
 
+INVISIBLE = ("\ufeff", "\u200b", "\u2060", "\u00a0")
+
+def clean_line(s: str) -> str:
+    if not isinstance(s, str):
+        s = str(s)
+    for ch in INVISIBLE:
+        s = s.replace(ch, "")
+    return s.strip()
+
+def strip_utm_and_fragment(raw_url: str) -> str:
+    p = urlparse(raw_url)
+    q = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if not k.lower().startswith("utm_")]
+    return urlunparse((p.scheme, p.netloc, p.path, p.params, urlencode(q, doseq=True), ""))
+
+def normalize_input(raw: str) -> str:
+    s = clean_line(raw)
+    if not s:
+        return ""
+    if s.startswith("http"):
+        s = strip_utm_and_fragment(s)
+        return urlparse(s).path or "/"
+    if not s.startswith("/"):
+        s = "/" + s
+    return s
+
 # ──────────────────────────────────────────────────────────────────────────────
 # GA4 client
 # ──────────────────────────────────────────────────────────────────────────────
@@ -60,20 +85,66 @@ def default_property_id() -> str:
     return pid
 
 # ──────────────────────────────────────────────────────────────────────────────
-# GA4 Queries
+# GA4 — URL Analytics (TAB 1)
 # ──────────────────────────────────────────────────────────────────────────────
-
 @st.cache_data(ttl=300)
-def fetch_top_materials_cached(
-    property_id: str,
-    start_date: str,
-    end_date: str,
-    limit: int,
-) -> pd.DataFrame:
+def fetch_by_paths_cached(property_id: str, paths: tuple, start_date: str, end_date: str) -> pd.DataFrame:
+    client = ga_client()
+
+    exprs = [
+        FilterExpression(
+            filter=Filter(
+                field_name="pagePath",
+                string_filter=Filter.StringFilter(
+                    value=p,
+                    match_type=Filter.StringFilter.MatchType.BEGINS_WITH,
+                    case_sensitive=False,
+                )
+            )
+        )
+        for p in paths
+    ]
+
+    req = RunReportRequest(
+        property=f"properties/{property_id}",
+        dimensions=[Dimension(name="pagePath"), Dimension(name="pageTitle")],
+        metrics=[
+            Metric(name="screenPageViews"),
+            Metric(name="activeUsers"),
+            Metric(name="userEngagementDuration"),
+        ],
+        date_ranges=[{"start_date": start_date, "end_date": end_date}],
+        dimension_filter=FilterExpression(
+            or_group=FilterExpressionList(expressions=exprs)
+        ),
+        limit=100000,
+    )
+
+    resp = client.run_report(req)
+
+    rows = []
+    for r in resp.rows:
+        views = int(float(r.metric_values[0].value or 0))
+        users = int(float(r.metric_values[1].value or 0))
+        eng = float(r.metric_values[2].value or 0)
+        rows.append({
+            "Path": r.dimension_values[0].value,
+            "Title": r.dimension_values[1].value,
+            "Views": views,
+            "Unique Users": users,
+            "Avg Engagement Time (s)": round(eng / max(users, 1), 1),
+        })
+
+    return pd.DataFrame(rows)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GA4 — Top Materials (TAB 2) — 1:1 GA4 UI
+# ──────────────────────────────────────────────────────────────────────────────
+@st.cache_data(ttl=300)
+def fetch_top_materials_cached(property_id: str, start_date: str, end_date: str, limit: int) -> pd.DataFrame:
     """
-    1:1 соответствует GA4:
+    Полное соответствие GA4:
     Dimension = 'Путь к странице и класс экрана'
-    Metric    = screenPageViews
     """
     client = ga_client()
 
@@ -81,7 +152,7 @@ def fetch_top_materials_cached(
         property=f"properties/{property_id}",
         dimensions=[
             Dimension(name="pagePathPlusQueryString"),
-            Dimension(name="pageTitle"),
+            Dimension(name="screenClass"),
         ],
         metrics=[
             Metric(name="screenPageViews"),
@@ -91,9 +162,7 @@ def fetch_top_materials_cached(
         date_ranges=[{"start_date": start_date, "end_date": end_date}],
         order_bys=[
             OrderBy(
-                metric=OrderBy.MetricOrderBy(
-                    metric_name="screenPageViews"
-                ),
+                metric=OrderBy.MetricOrderBy(metric_name="screenPageViews"),
                 desc=True,
             )
         ],
@@ -110,7 +179,7 @@ def fetch_top_materials_cached(
 
         rows.append({
             "Path": r.dimension_values[0].value,
-            "Title": r.dimension_values[1].value,
+            "Screen Class": r.dimension_values[1].value,
             "Views": views,
             "Unique Users": users,
             "Avg Engagement Time (s)": round(eng / max(users, 1), 1),
@@ -118,6 +187,9 @@ def fetch_top_materials_cached(
 
     return pd.DataFrame(rows)
 
+# ──────────────────────────────────────────────────────────────────────────────
+# GA4 — Global Totals (TAB 3)
+# ──────────────────────────────────────────────────────────────────────────────
 @st.cache_data(ttl=300)
 def fetch_site_totals_cached(property_id: str, start_date: str, end_date: str) -> pd.DataFrame:
     client = ga_client()
@@ -143,7 +215,6 @@ def fetch_site_totals_cached(property_id: str, start_date: str, end_date: str) -
 # App
 # ──────────────────────────────────────────────────────────────────────────────
 st.title("Analytics Console")
-st.markdown("GA4 reporting with exact parity to standard GA4 reports.")
 
 with st.sidebar:
     today = date.today()
@@ -151,64 +222,8 @@ with st.sidebar:
     date_to = st.date_input("Date To", value=today)
     property_id = st.text_input("GA4 Property ID", value=default_property_id())
 
-tab1, tab2, tab3 = st.tabs(["Top Materials", "Global Performance", "—"])
+tab1, tab2, tab3 = st.tabs(["URL Analytics", "Top Materials", "Global Performance"])
 
 # ──────────────────────────────────────────────────────────────────────────────
-# TAB 1 — Top Materials
-# ──────────────────────────────────────────────────────────────────────────────
-with tab1:
-    st.subheader("High-Performance Content (Top by Page Views)")
-
-    limit = st.number_input(
-        "Limit",
-        min_value=1,
-        max_value=500,
-        value=10,
-        step=1,
-    )
-
-    if st.button("Extract Top Content"):
-        if date_from > date_to:
-            fail_ui("Date From must be <= Date To.")
-        pid = property_id.strip()
-        if not pid:
-            fail_ui("GA4 Property ID is empty.")
-
-        with st.spinner("Fetching GA4…"):
-            df_top = fetch_top_materials_cached(
-                property_id=pid,
-                start_date=str(date_from),
-                end_date=str(date_to),
-                limit=int(limit),
-            )
-
-        if df_top.empty:
-            st.info("No data returned for this period.")
-        else:
-            st.dataframe(df_top, use_container_width=True, hide_index=True)
-            st.download_button(
-                "Export CSV",
-                df_top.to_csv(index=False).encode("utf-8"),
-                "ga4_top_materials.csv",
-                "text/csv",
-            )
-
-# ──────────────────────────────────────────────────────────────────────────────
-# TAB 2 — Global Performance
-# ──────────────────────────────────────────────────────────────────────────────
-with tab2:
-    st.subheader("Global Site Summary")
-
-    if st.button("Refresh Site Totals"):
-        if date_from > date_to:
-            fail_ui("Date From must be <= Date To.")
-        pid = property_id.strip()
-        if not pid:
-            fail_ui("GA4 Property ID is empty.")
-
-        totals = fetch_site_totals_cached(pid, str(date_from), str(date_to))
-
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Sessions", f"{int(totals.loc[0, 'sessions']):,}")
-        c2.metric("Unique Users", f"{int(totals.loc[0, 'totalUsers']):,}")
-        c3.metric("Page Views", f"{int(totals.loc[0, 'screenPageViews']):,}")
+# TAB 1 — URL Analytics
+# ───────
