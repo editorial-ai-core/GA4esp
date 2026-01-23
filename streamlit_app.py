@@ -503,29 +503,46 @@ with tab1:
 # TAB 2 — Top Materials
 # ──────────────────────────────────────────────────────────────────────────────
 with tab2:
-    st.subheader("High-Performance Content")
+    st.subheader("High-Performance Content (Top by Page Views)")
+
     c1, c2 = st.columns([1, 2])
     with c1:
-        limit = st.number_input("Limit", min_value=1, max_value=500, value=10)
+        limit = st.number_input(
+            "Limit",
+            min_value=1,
+            max_value=500,
+            value=10,
+            step=1,
+        )
 
     if st.button("Extract Top Content"):
         if date_from > date_to:
             fail_ui("Date From must be <= Date To.")
+
         pid = property_id.strip()
         if not pid:
             fail_ui("GA4 Property ID is empty.")
 
-        with st.spinner(f"Extracting top {int(limit)} materials..."):
-            df_top = fetch_top_materials_cached(pid, str(date_from), str(date_to), int(limit))
+        with st.spinner(f"Extracting top {int(limit)} pages by screenPageViews..."):
+            df_top = fetch_top_materials_by_views_cached(
+                pid=pid,
+                date_from=str(date_from),
+                date_to=str(date_to),
+                limit=int(limit),
+            )
 
         if df_top.empty:
             st.info("No data returned for this period.")
         else:
-            st.dataframe(df_top, use_container_width=True, hide_index=True)
+            st.dataframe(
+                df_top,
+                use_container_width=True,
+                hide_index=True,
+            )
             st.download_button(
                 "Export Ranking (CSV)",
                 df_top.to_csv(index=False).encode("utf-8"),
-                "ga4_top.csv",
+                "ga4_top_by_screenPageViews.csv",
                 "text/csv",
             )
 
