@@ -503,7 +503,7 @@ with tab1:
 # TAB 2 — Top Materials
 # ──────────────────────────────────────────────────────────────────────────────
 with tab2:
-    st.subheader("High-Performance Content (Top by Page Views)")
+    st.subheader("High-Performance Content")
 
     c1, c2 = st.columns([1, 2])
     with c1:
@@ -524,10 +524,10 @@ with tab2:
             fail_ui("GA4 Property ID is empty.")
 
         with st.spinner(f"Extracting top {int(limit)} pages by screenPageViews..."):
-            df_top = fetch_top_materials_by_views_cached(
-                pid=pid,
-                date_from=str(date_from),
-                date_to=str(date_to),
+            df_top = fetch_top_materials_cached(
+                property_id=pid,
+                start_date=str(date_from),
+                end_date=str(date_to),
                 limit=int(limit),
             )
 
