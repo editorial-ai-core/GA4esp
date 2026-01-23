@@ -6,7 +6,8 @@ from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 from google.oauth2 import service_account
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
-    RunReportRequest, Dimension, Metric, OrderBy, Filter, FilterExpression, FilterExpressionList
+    RunReportRequest, Dimension, Metric, OrderBy,
+    Filter, FilterExpression, FilterExpressionList
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ def normalize_path(raw: str) -> str:
     raw = raw.strip()
     if raw.startswith("http"):
         p = urlparse(raw)
-        q = [(k, v) for k, v in parse_qsl(p.query) if not k.startswith("utm_")]
+        q = [(k, v) for k, v in parse_qsl(p.query) if not k.lower().startswith("utm_")]
         return urlunparse(("", "", p.path or "/", "", urlencode(q), ""))
     if not raw.startswith("/"):
         return "/" + raw
@@ -62,7 +63,10 @@ def fetch_urls(property_id, paths, start_date, end_date):
 
     req = RunReportRequest(
         property=f"properties/{property_id}",
-        dimensions=[Dimension(name="pagePath"), Dimension(name="pageTitle")],
+        dimensions=[
+            Dimension(name="pagePath"),
+            Dimension(name="pageTitle"),
+        ],
         metrics=[
             Metric(name="screenPageViews"),
             Metric(name="activeUsers"),
@@ -79,19 +83,34 @@ def fetch_urls(property_id, paths, start_date, end_date):
 
     rows = []
     for r in resp.rows:
-        v = int(float(r.metric_values[0].value or 0))
-        u = int(float(r.metric_values[1].value or 0))
-        e = float(r.metric_values[2].value or 0)
-
         rows.append({
             "Path": r.dimension_values[0].value,
             "Title": r.dimension_values[1].value,
-            "Views": v,
-            "Users": u,
-            "Avg Engagement (s)": round(e / max(u, 1), 1),
+            "Views": int(float(r.metric_values[0].value or 0)),
+            "Users": int(float(r.metric_values[1].value or 0)),
+            "Engagement": float(r.metric_values[2].value or 0),
         })
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        return df
+
+    # ── ВАЖНО: агрегируем → одна ссылка = одна строка
+    df = (
+        df.groupby("Path", as_index=False)
+          .agg({
+              "Title": "first",
+              "Views": "sum",
+              "Users": "sum",
+              "Engagement": "sum",
+          })
+    )
+
+    df["Avg Engagement (s)"] = (df["Engagement"] / df["Users"].replace(0, 1)).round(1)
+    df = df.drop(columns=["Engagement"])
+
+    return df
 
 @st.cache_data(ttl=300)
 def fetch_top(property_id, start_date, end_date, limit):
@@ -99,9 +118,7 @@ def fetch_top(property_id, start_date, end_date, limit):
 
     req = RunReportRequest(
         property=f"properties/{property_id}",
-        dimensions=[
-            Dimension(name="pagePathPlusQueryString"),
-        ],
+        dimensions=[Dimension(name="pagePathPlusQueryString")],
         metrics=[
             Metric(name="screenPageViews"),
             Metric(name="activeUsers"),
@@ -116,13 +133,7 @@ def fetch_top(property_id, start_date, end_date, limit):
         limit=limit,
     )
 
-    try:
-        resp = client.run_report(req)
-    except Exception:
-        raise RuntimeError(
-            "No access to this GA4 Property. "
-            "Add the service account as Viewer/Analyst."
-        )
+    resp = client.run_report(req)
 
     return pd.DataFrame([{
         "Path": r.dimension_values[0].value,
@@ -158,20 +169,41 @@ with st.sidebar:
 
 tabs = st.tabs(["URL Analytics", "Top Materials", "Global Performance"])
 
-# TAB 1
+# ──────────────────────────────────────────────────────────────────────────────
+# TAB 1 — URL Analytics
+# ──────────────────────────────────────────────────────────────────────────────
+if "auto_collect" not in st.session_state:
+    st.session_state.auto_collect = False
+
+def trigger_collect():
+    st.session_state.auto_collect = True
+
 with tabs[0]:
     st.subheader("URL Analytics")
-    raw = st.text_area("URLs or paths (one per line)", height=200)
 
-    if st.button("Collect", key="btn_urls"):
+    raw = st.text_area(
+        "URLs or paths (one per line)",
+        height=200,
+        key="url_input",
+        on_change=trigger_collect,
+    )
+
+    should_collect = st.session_state.auto_collect
+
+    if should_collect:
+        st.session_state.auto_collect = False
+
         if not property_id.isdigit():
             ui_error("Invalid GA4 Property ID")
         else:
             paths = [normalize_path(x) for x in raw.splitlines() if x.strip()]
-            df = fetch_urls(property_id, paths, str(date_from), str(date_to))
-            st.dataframe(df, use_container_width=True)
+            if paths:
+                df = fetch_urls(property_id, paths, str(date_from), str(date_to))
+                st.dataframe(df, use_container_width=True)
 
-# TAB 2
+# ──────────────────────────────────────────────────────────────────────────────
+# TAB 2 — Top Materials
+# ──────────────────────────────────────────────────────────────────────────────
 with tabs[1]:
     st.subheader("Top Materials")
 
@@ -181,13 +213,12 @@ with tabs[1]:
         if not property_id.isdigit():
             ui_error("Invalid GA4 Property ID")
         else:
-            try:
-                df = fetch_top(property_id, str(date_from), str(date_to), int(limit))
-                st.dataframe(df, use_container_width=True)
-            except RuntimeError as e:
-                ui_error(str(e))
+            df = fetch_top(property_id, str(date_from), str(date_to), int(limit))
+            st.dataframe(df, use_container_width=True)
 
-# TAB 3
+# ──────────────────────────────────────────────────────────────────────────────
+# TAB 3 — Global Performance
+# ──────────────────────────────────────────────────────────────────────────────
 with tabs[2]:
     st.subheader("Global Performance")
 
