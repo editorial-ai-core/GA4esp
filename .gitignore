@@ -1,32 +1,22 @@
-# Python
+# === secrets ===
+.env
+*.env
+*.json
+.streamlit/secrets.toml
+
+# === virtualenv ===
+.venv/
+.venv*/
+venv/
+venv*/
+venv311/
+
+# === python ===
 __pycache__/
-*.py[cod]
+*.pyc
 *.pyo
 *.pyd
 
-# Virtual environments
-.venv/
-venv/
-env/
-
-# OS
+# === misc / OS ===
 .DS_Store
 Thumbs.db
-
-# Streamlit
-.streamlit/secrets.toml
-
-# Credentials / keys
-*.json
-*.key
-*.pem
-
-# Logs
-*.log
-
-# IDE
-.vscode/
-.idea/
-
-# Jupyter
-.ipynb_checkpoints/
