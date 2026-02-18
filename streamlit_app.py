@@ -509,7 +509,7 @@ with tab1:
             "pagePath",
             "pageTitle",
             "screenPageViews",
-            "totalUsers",
+            "activeUsers",
             "viewsPerActiveUser",
             "avgEngagementTime_sec",
         ]).rename(columns={
