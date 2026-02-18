@@ -545,12 +545,12 @@ with tab1:
 # TAB 2 — Top Materials
 # ──────────────────────────────────────────────────────────────────────────────
 with tab2:
-    st.subheader("High-Performance Content")
+    st.subheader("Лидеры по показателям")
     c1, c2 = st.columns([1, 2])
     with c1:
-        limit = st.number_input("Limit", min_value=1, max_value=500, value=10)
+        limit = st.number_input("Количество", min_value=1, max_value=500, value=10)
 
-    if st.button("Extract Top Content"):
+    if st.button("Сформировать рейтинг"):
         if date_from > date_to:
             fail_ui("Date From must be <= Date To.")
         pid = property_id.strip()
@@ -565,7 +565,7 @@ with tab2:
         else:
             st.dataframe(df_top, use_container_width=True, hide_index=True)
             st.download_button(
-                "Export Ranking (CSV)",
+                "Скачать рейтинг (CSV)",
                 df_top.to_csv(index=False).encode("utf-8"),
                 "ga4_top.csv",
                 "text/csv",
