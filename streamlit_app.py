@@ -436,10 +436,10 @@ with head_col2:
 st.divider()
 
 with st.sidebar:
-    st.markdown("### Reporting Period")
+    st.markdown("### Отчётный период")
     today = date.today()
-    date_from = st.date_input("Date From", value=today - timedelta(days=30))
-    date_to = st.date_input("Date To", value=today)
+    date_from = st.date_input("Дата начала", value=today - timedelta(days=30))
+    date_to = st.date_input("Дата окончания", value=today)
 
     st.divider()
     pid_default = default_property_id()
