@@ -453,7 +453,7 @@ with st.sidebar:
         st.markdown("<br>", unsafe_allow_html=True)
         render_logo(SIDEBAR_LOGO, width=160)
 
-tab1, tab2, tab3, tab4 = st.tabs(["URL Analytics", "Top Materials", "Global Performance", "Demographics"])
+tab1, tab2, tab3, tab4 = st.tabs(["Статистика по загруженным ссылкам", "Лучшие материалы", "Общие показатели", "Демография"])
 
 # ──────────────────────────────────────────────────────────────────────────────
 # TAB 1 — URL Analytics
