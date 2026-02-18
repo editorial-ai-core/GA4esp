@@ -413,7 +413,7 @@ def fetch_demographics_gender_cached(property_id: str, start_date: str, end_date
         return pd.DataFrame(columns=["Gender", "Users", "Views", "Avg Engagement Time (s)"])
 
     # stable ordering
-    order = {"male": 0, "female": 1, "unknown": 2}
+    order = {"Муж.": 0, "Жен.": 1, "unknown": 2}
     df["_ord"] = df["Gender"].map(order).fillna(99)
     df = df.sort_values(["_ord", "Gender"]).drop(columns=["_ord"]).reset_index(drop=True)
     return df
@@ -577,7 +577,7 @@ with tab2:
 with tab3:
     st.subheader("Общая статистика сайта")
 
-    if st.button("Refresh Site Totals"):
+    if st.button("Собрать данные"):
         if date_from > date_to:
             fail_ui("Date From must be <= Date To.")
         pid = property_id.strip()
@@ -599,10 +599,10 @@ with tab3:
 # TAB 4 — Demographics
 # ──────────────────────────────────────────────────────────────────────────────
 with tab4:
-    st.subheader("Demographics")
-    st.markdown("Audience distribution by gender (GA4 userGender).")
+    st.subheader("Демографические данные")
+    st.markdown("Распределение аудитории по гендерному признаку.")
 
-    if st.button("Load Demographics"):
+    if st.button("Показать данные"):
         if date_from > date_to:
             fail_ui("Date From must be <= Date To.")
         pid = property_id.strip()
@@ -621,11 +621,11 @@ with tab4:
             total_views = int(pd.to_numeric(df_demo["Views"], errors="coerce").fillna(0).sum())
 
             k1, k2 = st.columns(2)
-            k1.metric("Total Users", f"{total_users:,}")
-            k2.metric("Total Views", f"{total_views:,}")
+            k1.metric("Всего пользователей", f"{total_users:,}")
+            k2.metric("Всего просмотров", f"{total_views:,}")
 
             st.download_button(
-                "Export Demographics (CSV)",
+                "Экспорт демографических данных (CSV)",
                 df_demo.to_csv(index=False).encode("utf-8"),
                 "ga4_demographics_gender.csv",
                 "text/csv",
