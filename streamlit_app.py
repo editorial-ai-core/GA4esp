@@ -577,7 +577,7 @@ with tab2:
 with tab3:
     st.subheader("Общая статистика сайта")
 
-    if st.button("Собрать данные"):
+    if st.button("Показать данные"):
         if date_from > date_to:
             fail_ui("Date From must be <= Date To.")
         pid = property_id.strip()
@@ -602,7 +602,7 @@ with tab4:
     st.subheader("Демографические данные")
     st.markdown("Распределение аудитории по гендерному признаку.")
 
-    if st.button("Показать данные"):
+    if st.button("Показать демографию"):
         if date_from > date_to:
             fail_ui("Date From must be <= Date To.")
         pid = property_id.strip()
