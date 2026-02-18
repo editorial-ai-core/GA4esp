@@ -516,7 +516,7 @@ with tab1:
             "pagePath": "Path",
             "pageTitle": "Заголовок",
             "screenPageViews": "Просмотры (Views)",
-            "activeUsers": "Активные пользователи (Unique Users)",
+            "activeUsers": "Активные пользователи (Active Users)",
             "viewsPerActiveUser": "Просмотров на пользователя (Views / Active User)",
             "avgEngagementTime_sec": "Среднее время вовлечённости (секунд) Avg Engagement Time (s)",
         })
@@ -529,10 +529,10 @@ with tab1:
         avg_eng = float(pd.to_numeric(df_p["userEngagementDuration"], errors="coerce").sum() / max(tot_users, 1)) if "userEngagementDuration" in df_p.columns else 0.0
 
         k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Views", f"{tot_views:,}")
-        k2.metric("Unique Users", f"{tot_users:,}")
-        k3.metric("Views / Unique User", f"{ratio:.2f}")
-        k4.metric("Avg Engagement Time (s)", f"{avg_eng:.1f}")
+        k1.metric("Просмотры", f"{tot_views:,}")
+        k2.metric("Активные пользователи", f"{tot_users:,}")
+        k3.metric("Просмотров на пользователя", f"{ratio:.2f}")
+        k4.metric("Среднее время вовлечённости (секунд)", f"{avg_eng:.1f}")
 
         st.download_button(
             "Скачать CSV",
