@@ -575,7 +575,7 @@ with tab2:
 # TAB 3 — Global Performance
 # ──────────────────────────────────────────────────────────────────────────────
 with tab3:
-    st.subheader("Global Performance")
+    st.subheader("Общая статистика сайта")
 
     if st.button("Refresh Site Totals"):
         if date_from > date_to:
@@ -591,9 +591,9 @@ with tab3:
             v = int(totals.loc[0, "screenPageViews"])
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("Sessions", f"{s:,}")
-        c2.metric("Unique Users", f"{u:,}")
-        c3.metric("Page Views", f"{v:,}")
+        c1.metric("Количество сессий (Sessions)", f"{s:,}")
+        c2.metric("Всего пользователей (Unique Users)", f"{u:,}")
+        c3.metric("Количество просмотров страниц (Page Views)", f"{v:,}")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # TAB 4 — Demographics
