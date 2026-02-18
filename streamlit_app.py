@@ -509,16 +509,16 @@ with tab1:
             "pagePath",
             "pageTitle",
             "screenPageViews",
-            "activeUsers",
+            "totalUsers",
             "viewsPerActiveUser",
             "avgEngagementTime_sec",
         ]).rename(columns={
             "pagePath": "Path",
-            "pageTitle": "Title",
-            "screenPageViews": "Views",
-            "activeUsers": "Unique Users",
-            "viewsPerActiveUser": "Views / Unique User",
-            "avgEngagementTime_sec": "Avg Engagement Time (s)",
+            "pageTitle": "Заголовок",
+            "screenPageViews": "Просмотры (Views)",
+            "totalUsers": "Уникальные пользователи (Unique Users)",
+            "viewsPerActiveUser": "Просмотров на пользователя (Views / Unique User)",
+            "avgEngagementTime_sec": "Среднее время вовлечённости (секунд) Avg Engagement Time (s)",
         })
 
         st.dataframe(show, use_container_width=True, hide_index=True)
