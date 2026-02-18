@@ -459,19 +459,19 @@ tab1, tab2, tab3, tab4 = st.tabs(["Статистика по загруженн�
 # TAB 1 — URL Analytics
 # ──────────────────────────────────────────────────────────────────────────────
 with tab1:
-    st.subheader("URL Analytics")
+    st.subheader("Аналитика ссылок")
 
     cA, cB = st.columns([3, 2])
     with cA:
         uinput = st.text_area(
-            "Paste URLs or paths (one per line)",
+            "Вставьте cссылки (по одной на строку)",
             height=200,
             placeholder=(
                 "https://www.websitename.online/..."
                             ),
         )
     with cB:
-        uploaded = st.file_uploader("Or upload .txt / .csv", type=["txt", "csv"])
+        uploaded = st.file_uploader("или загрузите файл .txt / .csv", type=["txt", "csv"])
 
     lines = []
     if uinput:
@@ -485,14 +485,14 @@ with tab1:
     host_txt = f" | Hosts: {', '.join(hostnames)}" if hostnames else ""
     st.caption(f"Lines: {len(lines)} | URLs: {url_like} | Paths: {path_like}{host_txt}")
 
-    if st.button("Collect"):
+    if st.button("Собрать данные"):
         if date_from > date_to:
             fail_ui("Date From must be <= Date To.")
         pid = property_id.strip()
         if not pid:
             fail_ui("GA4 Property ID is empty.")
         if not lines:
-            fail_ui("Please add at least one URL or path.")
+            fail_ui("Пожалуйста, добавьте хотя бы один URL")
 
         with st.spinner("Fetching GA4 (pagePath)..."):
             df_p = fetch_by_paths_cached(
@@ -535,7 +535,7 @@ with tab1:
         k4.metric("Avg Engagement Time (s)", f"{avg_eng:.1f}")
 
         st.download_button(
-            "Export (CSV)",
+            "Скачать CSV",
             show.to_csv(index=False).encode("utf-8"),
             "ga4_url_analytics.csv",
             "text/csv",
