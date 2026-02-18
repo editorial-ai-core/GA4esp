@@ -412,9 +412,17 @@ def fetch_demographics_gender_cached(property_id: str, start_date: str, end_date
     if df.empty:
         return pd.DataFrame(columns=["Gender", "Users", "Views", "Avg Engagement Time (s)"])
 
-    # stable ordering
+    gender_map = {
+        "male": "муж.",
+        "female": "жен.",
+        "unknown": "неизвестно",
+    }
+
     order = {"male": 0, "female": 1, "unknown": 2}
     df["_ord"] = df["Gender"].map(order).fillna(99)
+
+    df["Gender"] = df["Gender"].map(gender_map).fillna(df["Gender"])
+
     df = df.sort_values(["_ord", "Gender"]).drop(columns=["_ord"]).reset_index(drop=True)
     return df
 
