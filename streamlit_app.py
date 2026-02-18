@@ -516,8 +516,8 @@ with tab1:
             "pagePath": "Path",
             "pageTitle": "Заголовок",
             "screenPageViews": "Просмотры (Views)",
-            "totalUsers": "Уникальные пользователи (Unique Users)",
-            "viewsPerActiveUser": "Просмотров на пользователя (Views / Unique User)",
+            "activeUsers": "Активные пользователи (Unique Users)",
+            "viewsPerActiveUser": "Просмотров на пользователя (Views / Active User)",
             "avgEngagementTime_sec": "Среднее время вовлечённости (секунд) Avg Engagement Time (s)",
         })
 
